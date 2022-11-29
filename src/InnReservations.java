@@ -17,6 +17,7 @@ public class InnReservations {
             switch (Integer.parseInt(args[0])) {
                 case 1: ir.roomsAndRates(); break;
                 case 3: ir.reservationChange(); break;
+                case 4: ir.reservationCancellation(); break;
             }
         }
         catch (SQLException e) {
@@ -75,6 +76,7 @@ public class InnReservations {
             System.out.println("Enter a new number of adults: ");
             String adults = scanner.nextLine();
 
+            //Checks if the checkout date comes before the check-in date
             if (checkOut.compareTo(checkIn) == -1) {
                 System.out.println("Check out date cannot be before check in");
                 return;
@@ -179,10 +181,30 @@ public class InnReservations {
                     pstmt.setObject(i++, p);
                 }
                 int rowCount = pstmt.executeUpdate();
-                System.out.format("Updated %d records for reservations %s%n", rowCount, code);
+                System.out.format("Updated %d records for reservation %s%n", rowCount, code);
 
             } catch (SQLException e) {
                 conn.rollback();
+            }
+        }
+    }
+
+    private void reservationCancellation() throws SQLException {
+        System.out.println("FR4: Reservation Cancellation\r\n");
+        try (Connection conn = DriverManager.getConnection(System.getenv("HP_JDBC_URL"),
+                System.getenv("HP_JDBC_USER"),
+                System.getenv("HP_JDBC_PW"))) {
+
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter a reservation code: ");
+            String code = scanner.nextLine();
+
+            StringBuilder delete = new StringBuilder("DELETE FROM hp_reservations WHERE CODE = ?");
+
+            try (PreparedStatement pstmt = conn.prepareStatement(delete.toString())) {
+                pstmt.setObject(1, Integer.parseInt(code));
+                int rowCount = pstmt.executeUpdate();
+                System.out.format("Updated %d records for reservation %s%n", rowCount, code);
             }
         }
     }
