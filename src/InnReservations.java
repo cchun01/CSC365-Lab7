@@ -12,28 +12,35 @@ import java.util.Scanner;
 public class InnReservations {
     public static void main(String[] args) {
         System.out.println(System.getenv());
-        try{
+        try {
             InnReservations ir = new InnReservations();
             switch (Integer.parseInt(args[0])) {
-                case 1: ir.roomsAndRates(); break;
-                case 3: ir.reservationChange(); break;
-                case 4: ir.reservationCancellation(); break;
+                case 1:
+                    ir.roomsAndRates();
+                    break;
+                case 3:
+                    ir.reservationChange();
+                    break;
+                case 4:
+                    ir.reservationCancellation();
+                    break;
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             System.err.println("SQLException: " + e.getMessage());
         } catch (Exception e2) {
             System.err.println("Exception: " + e2.getMessage());
         }
     }
 
-    //When this option is selected, the system shall output a list of rooms
-    //to the user sorted by popularity
-    //  •Room popularity score: number of days the room has been occupied during the previous
-    //  180 days divided by 180 (round to two decimal places)
-    //  •Next available check-in date.
-    //  •Length in days and check out date of the most recent (completed) stay in the room.
-    private void roomsAndRates() throws SQLException{
+    // When this option is selected, the system shall output a list of rooms
+    // to the user sorted by popularity
+    // •Room popularity score: number of days the room has been occupied during the
+    // previous
+    // 180 days divided by 180 (round to two decimal places)
+    // •Next available check-in date.
+    // •Length in days and check out date of the most recent (completed) stay in the
+    // room.
+    private void roomsAndRates() throws SQLException {
 
         System.out.println("FR1: Rooms and Rates\r\n");
 
@@ -41,19 +48,24 @@ public class InnReservations {
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
 
-            String roomQuery = "SELECT * FROM hp_rooms";
-            String reservationQuery = "SELECT * FROM hp_reservations where CODE = 69420";
+            String roomsAndRates = "with Popular as ( SELECT Room, (SUM(DateDiff(Checkout, IF (CheckIn >= DATE_SUB(day, 180, Current_Date), CheckIn, DATE_SUB(day, 180, Current_Date))))/180) as Popularity FROM hp_reservations WHERE CheckOut > DATE_SUB(day, 180, Current_Date) GROUP BY Room), mostRecent( SELECT hp_rooms.RoomName, hp_reservations.Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT mostRecent.RoomName, Popularity, DATE_ADD(day, 1, recentCheckout), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room GROUP By mostRecent.RoomName";
 
-            try (Statement stmt = conn.createStatement();
-                ResultSet reservationSet = stmt.executeQuery(reservationQuery)) {
-                    System.out.println(reservationSet.first());
-//                    reservationSet.next();
-//                    System.out.println(reservationSet.getString(1));
+            try (Statement stmt = conn.createStatement()) {
+                ResultSet result = stmt.executeQuery(roomsAndRates);
+                System.out.println("RoomName" + "\t" + "Popularity" + "\t" + "Next Avalible CheckIn" + "\t"
+                        + "Recent Stay Length");
+                while (result.next()) {
+                    String roomName = result.getString(0);
+                    String popularity = result.getString(1);
+                    String nextCheckIn = result.getString(2);
+                    String recentStayLength = result.getString(3);
+                    System.out.println(roomName + "\t" + popularity + "\t" + nextCheckIn + "\t" + recentStayLength);
                 }
+            }
         }
     }
 
-    private void reservationChange() throws SQLException{
+    private void reservationChange() throws SQLException {
         System.out.println("FR3: Reservation Change\r\n");
         try (Connection conn = DriverManager.getConnection(System.getenv("HP_JDBC_URL"),
                 System.getenv("HP_JDBC_USER"),
@@ -76,14 +88,15 @@ public class InnReservations {
             System.out.println("Enter a new number of adults: ");
             String adults = scanner.nextLine();
 
-            //Checks if the checkout date comes before the check-in date
+            // Checks if the checkout date comes before the check-in date
             if (checkOut.compareTo(checkIn) == -1) {
                 System.out.println("Check out date cannot be before check in");
                 return;
             }
 
-            //If the check-in or check-out dates have been updated, this is to check if they conflict
-            //with any other reservations in the same room
+            // If the check-in or check-out dates have been updated, this is to check if
+            // they conflict
+            // with any other reservations in the same room
             if (!"no change".equalsIgnoreCase(checkIn) || !"no change".equalsIgnoreCase(checkOut)) {
                 StringBuilder getRoom = new StringBuilder("SELECT * FROM hp_reservations WHERE CODE = ?");
                 String room;
@@ -95,7 +108,8 @@ public class InnReservations {
                     }
                 }
 
-                StringBuilder dateChecker = new StringBuilder("SELECT * FROM hp_reservations WHERE room = ? AND CheckIn < ? AND Checkout > ? ");
+                StringBuilder dateChecker = new StringBuilder(
+                        "SELECT * FROM hp_reservations WHERE room = ? AND CheckIn < ? AND Checkout > ? ");
                 String changedDate;
                 if (!"no change".equalsIgnoreCase(checkIn)) {
                     changedDate = checkIn;
@@ -108,14 +122,16 @@ public class InnReservations {
                     pstmt.setObject(3, changedDate);
                     try (ResultSet rs = pstmt.executeQuery()) {
                         if (rs.first() == true) {
-                            System.out.println("The new check-in or check-out date conflicts with another reservation in the same room");
+                            System.out.println(
+                                    "The new check-in or check-out date conflicts with another reservation in the same room");
                             return;
                         }
                     }
                 }
             }
 
-            //The program reaches here if there was no time conflict or updated check-in or check-out dates
+            // The program reaches here if there was no time conflict or updated check-in or
+            // check-out dates
             List<Object> params = new ArrayList<Object>();
             int first = 0;
             StringBuilder sb = new StringBuilder("UPDATE hp_reservations SET");
@@ -165,7 +181,7 @@ public class InnReservations {
                 }
             }
             if (!"no change".equalsIgnoreCase(adults)) {
-                if (first == 0){
+                if (first == 0) {
                     sb.append(" Adults = ?");
                 } else {
                     sb.append(", Adults = ?");
