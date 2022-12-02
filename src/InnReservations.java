@@ -239,77 +239,73 @@ public class InnReservations {
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
 
-            String First;
-            String Last;
-            String CheckInDate;
-            String CheckoutDate;
-            String RoomCode;
-            String ReservationCode;
-
             Scanner scanner = new Scanner(System.in);
             System.out.println("Enter any combination of the fields listed below. A blank entry should indicate Any");
             // First name
             System.out.println("Enter a first name: ");
-            if (scanner.nextLine().equals("")) {
-                First = "%%";
+            String First = scanner.nextLine();
+            if (First.equals("")) {
+                First = "\'%%\'";
             } else {
-                First = scanner.nextLine();
+                First = "\'" + First + "\'";
             }
             // Last name
             System.out.println("Enter a last name: ");
-            if (scanner.nextLine().equals("")) {
-                Last = "%%";
+            String Last = scanner.nextLine();
+            if (Last.equals("")) {
+                Last = "\'%%\'";
             } else {
-                Last = scanner.nextLine();
+                Last = "\'" + Last + "\'";
             }
             // A range of dates
-            System.out.println("Enter a range of dates(xxxx-x-x : xxxx-x-x) : ");
-            if (scanner.nextLine().equals("")) {
-                CheckInDate = "> 0000-1-1";
-                CheckoutDate = "< 9999-12-31";
-            } else {
-                String[] dates = (scanner.nextLine()).split(":");
+            String dateString = "";
+            System.out.println("Enter a range of dates(xxxx-x-x : xxxx-x-x)  ");
+            String dateInput = scanner.nextLine();
+            if (dateInput != "") {
+                String[] dates = (dateInput).split(":");
                 System.out.print(dates);
-                CheckInDate = "=" + dates[0];
-                CheckoutDate = "=" + dates[1];
+                dateString += " AND Checkin = \'" + dates[0] + "\' AND CheckOut = \'" + dates[1] + "\'";
             }
             // Room code
             System.out.println("Enter a room code: ");
-            if (scanner.nextLine().equals("")) {
-                RoomCode = "%%";
+            String RoomCode = scanner.nextLine();
+            if (RoomCode.equals("")) {
+                RoomCode = "\'%%\'";
             } else {
-                RoomCode = scanner.nextLine();
+                RoomCode = "\'" + RoomCode + "\'";
             }
             // Reservation code
             System.out.println("Enter a reservation code: ");
-            if (scanner.nextLine().equals("")) {
-                ReservationCode = "%%";
+            String ReservationCode = scanner.nextLine();
+            if (ReservationCode.equals("")) {
+                ReservationCode = "\'%%\'";
             } else {
-                ReservationCode = scanner.nextLine();
+                ReservationCode = "\'" + ReservationCode + "\'";
             }
 
-            String reservationInfo = "SELECT CODE, Room, RoomName, Checkin, Checkout, Rate, LastName, FirstName, Adults, Kids FROM hp_reservations INNER JOIN hp_rooms on hp_reservations.Room = hp_rooms.RoomCode WHERE Room LIKE"
-                    + RoomCode + "AND CODE LIKE" + ReservationCode + "AND FirstName LIKE" + First + "AND LastName LIKE"
-                    + Last + "AND Checkin" + CheckInDate + "AND Checkout" + CheckoutDate;
+            String reservationInfo = "SELECT CODE, Room, RoomName, Checkin, Checkout, Rate, LastName, FirstName, Adults, Kids FROM hp_reservations INNER JOIN hp_rooms on hp_reservations.Room = hp_rooms.RoomCode WHERE Room LIKE "
+                    + RoomCode + " AND CODE LIKE " + ReservationCode + " AND FirstName LIKE " + First
+                    + " AND LastName LIKE "
+                    + Last + dateString;
 
             try (Statement stmt = conn.createStatement()) {
                 ResultSet result = stmt.executeQuery(reservationInfo);
-                System.out.println("CODE" + "\t" + "Room" + "\t" + "RoomName" + "\t"
-                        + "Checkin" + "\t" + "Checkout" + "\t" + "Rate" + "\t" + "LastName" + "\t" + "FirstName" + "\t"
-                        + "Adults" + "\t" + "Kids");
+                System.out.printf("%-10s%-10s%-22s%-15s%-15s%-10s%-12s%-12s%-10s%-10s\n", "CODE", "RoomCode",
+                        "RoomName",
+                        "CheckIn", "Checkout", "Rate", "LastName", "FirstName", "Adults", "Kids");
                 while (result.next()) {
-                    String CODE = result.getString(0);
-                    String Room = result.getString(1);
-                    String RoomName = result.getString(2);
-                    String CheckIn = result.getString(3);
-                    String Checkout = result.getString(4);
-                    String Rate = result.getString(5);
-                    String LastName = result.getString(6);
-                    String FirstName = result.getString(7);
-                    String Adults = result.getString(8);
-                    String Kids = result.getString(9);
-                    System.out.println(CODE + "\t" + Room + "\t" + RoomName + "\t" + CheckIn + "\t" + Checkout + "\t"
-                            + Rate + "\t" + LastName + "\t" + FirstName + "\t" + Adults + "\t" + Kids);
+                    String CODE = result.getString(1);
+                    String Room = result.getString(2);
+                    String RoomName = result.getString(3);
+                    String CheckIn = result.getString(4);
+                    String Checkout = result.getString(5);
+                    String Rate = result.getString(6);
+                    String LastName = result.getString(7);
+                    String FirstName = result.getString(8);
+                    String Adults = result.getString(9);
+                    String Kids = result.getString(10);
+                    System.out.printf("%-10s%-10s%-22s%-15s%-15s%-10s%-12s%-12s%-10s%-10s\n", CODE, Room, RoomName,
+                            CheckIn, Checkout, Rate, LastName, FirstName, Adults, Kids);
                 }
             }
         }
