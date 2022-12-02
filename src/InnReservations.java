@@ -24,6 +24,9 @@ public class InnReservations {
                 case 4:
                     ir.reservationCancellation();
                     break;
+                case 5:
+                    ir.reservationInformation();
+                    break;
                 case 6:
                     ir.revenue();
                     break;
@@ -51,14 +54,19 @@ public class InnReservations {
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
 
-            String roomQuery = "SELECT * FROM hp_rooms";
-            String reservationQuery = "SELECT * FROM hp_reservations where CODE = 69420";
+            String roomsAndRates = "with Popular as ( SELECT Room, (SUM(DateDiff(Checkout, IF (CheckIn >= DATE_SUB(day, 180, Current_Date), CheckIn, DATE_SUB(day, 180, Current_Date))))/180) as Popularity FROM hp_reservations WHERE CheckOut > DATE_SUB(day, 180, Current_Date) GROUP BY Room), mostRecent( SELECT hp_rooms.RoomName, hp_reservations.Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT mostRecent.RoomName, Popularity, DATE_ADD(day, 1, recentCheckout), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room GROUP By mostRecent.RoomName";
 
-            try (Statement stmt = conn.createStatement();
-                    ResultSet reservationSet = stmt.executeQuery(reservationQuery)) {
-                System.out.println(reservationSet.first());
-                // reservationSet.next();
-                // System.out.println(reservationSet.getString(1));
+            try (Statement stmt = conn.createStatement()) {
+                ResultSet result = stmt.executeQuery(roomsAndRates);
+                System.out.println("RoomName" + "\t" + "Popularity" + "\t" + "Next Avalible CheckIn" + "\t"
+                        + "Recent Stay Length");
+                while (result.next()) {
+                    String roomName = result.getString(0);
+                    String popularity = result.getString(1);
+                    String nextCheckIn = result.getString(2);
+                    String recentStayLength = result.getString(3);
+                    System.out.println(roomName + "\t" + popularity + "\t" + nextCheckIn + "\t" + recentStayLength);
+                }
             }
         }
     }
@@ -223,6 +231,87 @@ public class InnReservations {
         }
     }
 
+    private void reservationInformation() throws SQLException {
+        System.out.println("FR5: Detailed Reservation Information\r\n");
+        try (Connection conn = DriverManager.getConnection(System.getenv("HP_JDBC_URL"),
+                System.getenv("HP_JDBC_USER"),
+                System.getenv("HP_JDBC_PW"))) {
+
+            String First;
+            String Last;
+            String CheckInDate;
+            String CheckoutDate;
+            String RoomCode;
+            String ReservationCode;
+
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter any combination of the fields listed below. A blank entry should indicate Any");
+            // First name
+            System.out.println("Enter a first name: ");
+            if (scanner.nextLine().equals("")) {
+                First = "%%";
+            } else {
+                First = scanner.nextLine();
+            }
+            // Last name
+            System.out.println("Enter a last name: ");
+            if (scanner.nextLine().equals("")) {
+                Last = "%%";
+            } else {
+                Last = scanner.nextLine();
+            }
+            // A range of dates
+            System.out.println("Enter a range of dates(xxxx-x-x : xxxx-x-x) : ");
+            if (scanner.nextLine().equals("")) {
+                CheckInDate = "> 0000-1-1";
+                CheckoutDate = "< 9999-12-31";
+            } else {
+                String[] dates = (scanner.nextLine()).split(":");
+                CheckInDate = "=" + dates[0];
+                CheckoutDate = "=" + dates[1];
+            }
+            // Room code
+            System.out.println("Enter a room code: ");
+            if (scanner.nextLine().equals("")) {
+                RoomCode = "%%";
+            } else {
+                RoomCode = scanner.nextLine();
+            }
+            // Reservation code
+            System.out.println("Enter a reservation code: ");
+            if (scanner.nextLine().equals("")) {
+                ReservationCode = "%%";
+            } else {
+                ReservationCode = scanner.nextLine();
+            }
+
+            String reservationInfo = "SELECT CODE, Room, RoomName, Checkin, Checkout, Rate, LastName, FirstName, Adults, Kids FROM hp_reservations INNER JOIN hp_rooms on hp_reservations.Room = hp_rooms.RoomCode WHERE Room LIKE"
+                    + RoomCode + "AND CODE LIKE" + ReservationCode + "AND FirstName LIKE" + First + "AND LastName LIKE"
+                    + Last + "AND Checkin" + CheckInDate + "AND Checkout" + CheckoutDate;
+
+            try (Statement stmt = conn.createStatement()) {
+                ResultSet result = stmt.executeQuery(reservationInfo);
+                System.out.println("CODE" + "\t" + "Room" + "\t" + "RoomName" + "\t"
+                        + "Checkin" + "\t" + "Checkout" + "\t" + "Rate" + "\t" + "LastName" + "\t" + "FirstName" + "\t"
+                        + "Adults" + "\t" + "Kids");
+                while (result.next()) {
+                    String CODE = result.getString(0);
+                    String Room = result.getString(1);
+                    String RoomName = result.getString(2);
+                    String CheckIn = result.getString(3);
+                    String Checkout = result.getString(4);
+                    String Rate = result.getString(5);
+                    String LastName = result.getString(6);
+                    String FirstName = result.getString(7);
+                    String Adults = result.getString(8);
+                    String Kids = result.getString(9);
+                    System.out.println(CODE + "\t" + Room + "\t" + RoomName + "\t" + CheckIn + "\t" + Checkout + "\t"
+                            + Rate + "\t" + LastName + "\t" + FirstName + "\t" + Adults + "\t" + Kids);
+                }
+            }
+        }
+    }
+
     private void revenue() throws SQLException {
 
         System.out.printf(
@@ -238,6 +327,7 @@ public class InnReservations {
                 "December", "Total");
         System.out.printf(
                 "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
+
         try (Connection conn = DriverManager.getConnection(System.getenv("HP_JDBC_URL"),
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
@@ -252,8 +342,12 @@ public class InnReservations {
                     float[] mRev = new float[12];
                     float yRev = 0;
 
-                    String mRevSql = String.format("SELECT MONTH(CheckOut) as month, SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as mRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s' group by month", roomName);
-                    String yRevSql = String.format("SELECT SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as yRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s'", roomName);
+                    String mRevSql = String.format(
+                            "SELECT MONTH(CheckOut) as month, SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as mRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s' group by month",
+                            roomName);
+                    String yRevSql = String.format(
+                            "SELECT SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as yRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s'",
+                            roomName);
 
                     try (Statement mRevStmt = conn.createStatement();
                             ResultSet mRevResult = mRevStmt.executeQuery(mRevSql)) {
@@ -270,7 +364,6 @@ public class InnReservations {
                         }
                     }
 
-
                     System.out.printf(
                             "| %-30s | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-9.2f |%n",
                             roomName, mRev[0], mRev[1], mRev[2], mRev[3], mRev[4],
@@ -281,8 +374,8 @@ public class InnReservations {
 
             System.out.printf(
                     "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
-            
-            float [] mTotal = new float [12];
+
+            float[] mTotal = new float[12];
             float yTotal = 0;
 
             String mTotalSql = "SELECT MONTH(CheckOut) as month, SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as mTotal FROM hp_reservations where YEAR(CheckOut) = YEAR(CURRENT_DATE()) group by month";
@@ -314,21 +407,3 @@ public class InnReservations {
                 "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
     }
 }
-
-// System.out.printf("--------------------------------%n");
-// System.out.printf(" Java's Primitive Types %n");
-// System.out.printf(" (printf table example) %n");
-
-// System.out.printf("--------------------------------%n");
-// System.out.printf("| %-9s | %-9s | %4s |%n","CATEGORY","NAME","BITS");
-// System.out.printf("--------------------------------%n");
-
-// System.out.printf("| %-9s | %-9s | %04d |%n","Floating","double",64);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Floating","float",32);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Integral","long",64);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Integral","int",32);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Integral","char",16);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Integral","short",16);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Integral","byte",8);
-// System.out.printf("| %-9s | %-9s | %04d |%n","Boolean","boolean",1);
-// System.out.printf("--------------------------------%n");
