@@ -58,18 +58,16 @@ public class InnReservations {
 
             try (Statement stmt = conn.createStatement()) {
                 ResultSet result = stmt.executeQuery(roomsAndRates);
-                System.out.println(
-                        "RoomName" + "\t" + "RoomCode" + "\t" + "Popularity" + "\t" + "Next Avalible CheckIn" + "\t"
-                                + "Recent Stay Length");
+                System.out.printf("%-27s%-10s%-12s%-25s%-22s\n", "RoomName", "RoomCode", "Popularity",
+                        "Next Avalible CheckIn", "Recent Stay Length");
                 while (result.next()) {
                     String roomName = result.getString(1);
                     String roomCode = result.getString(2);
                     String popularity = result.getString(3);
                     String nextCheckIn = result.getString(4);
                     String recentStayLength = result.getString(5);
-                    System.out.println(
-                            roomName + "\t" + roomCode + "\t" + popularity + "\t" + nextCheckIn + "\t"
-                                    + recentStayLength);
+                    System.out.printf("%-27s%-10s%-12s%-25s%-22s\n", roomName, roomCode, popularity,
+                            nextCheckIn, recentStayLength);
                 }
             }
         }
