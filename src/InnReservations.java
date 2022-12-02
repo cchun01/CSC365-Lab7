@@ -27,6 +27,9 @@ public class InnReservations {
                 case 5:
                     ir.reservationInformation();
                     break;
+                case 6:
+                    ir.revenue();
+                    break;
             }
         } catch (SQLException e) {
             System.err.println("SQLException: " + e.getMessage());
@@ -308,5 +311,100 @@ public class InnReservations {
                 }
             }
         }
+    }
+
+    private void revenue() throws SQLException {
+
+        System.out.printf(
+                "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
+        System.out.printf(
+                "                                                                               Month by Month Revenue This Year                                                                                %n");
+        System.out.printf(
+                "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
+        System.out.printf(
+                "| %-30s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-9s | %-10s |%n",
+                "Room", "January", "February", "March", "April", "May",
+                "June", "July", "August", "September", "October", "November",
+                "December", "Total");
+        System.out.printf(
+                "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
+
+        try (Connection conn = DriverManager.getConnection(System.getenv("HP_JDBC_URL"),
+                System.getenv("HP_JDBC_USER"),
+                System.getenv("HP_JDBC_PW"))) {
+
+            String roomsSql = "SELECT distinct RoomName FROM hp_rooms ORDER BY RoomName";
+
+            try (Statement roomsStmt = conn.createStatement();
+                    ResultSet roomsResult = roomsStmt.executeQuery(roomsSql)) {
+                while (roomsResult.next()) {
+                    String roomName = roomsResult.getString("RoomName");
+
+                    float[] mRev = new float[12];
+                    float yRev = 0;
+
+                    String mRevSql = String.format(
+                            "SELECT MONTH(CheckOut) as month, SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as mRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s' group by month",
+                            roomName);
+                    String yRevSql = String.format(
+                            "SELECT SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as yRevenue FROM hp_reservations join hp_rooms on Room = RoomCode where YEAR(CheckOut) = YEAR(CURRENT_DATE()) and RoomName = '%s'",
+                            roomName);
+
+                    try (Statement mRevStmt = conn.createStatement();
+                            ResultSet mRevResult = mRevStmt.executeQuery(mRevSql)) {
+                        while (mRevResult.next()) {
+                            int month = mRevResult.getInt("month") - 1;
+                            mRev[month] = mRevResult.getFloat("mRevenue");
+                        }
+                    }
+
+                    try (Statement yRevStmt = conn.createStatement();
+                            ResultSet yRevResult = yRevStmt.executeQuery(yRevSql)) {
+                        while (yRevResult.next()) {
+                            yRev = yRevResult.getFloat("yRevenue");
+                        }
+                    }
+
+                    System.out.printf(
+                            "| %-30s | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-9.2f |%n",
+                            roomName, mRev[0], mRev[1], mRev[2], mRev[3], mRev[4],
+                            mRev[5], mRev[6], mRev[7], mRev[8], mRev[9], mRev[10],
+                            mRev[11], yRev);
+                }
+            }
+
+            System.out.printf(
+                    "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
+
+            float[] mTotal = new float[12];
+            float yTotal = 0;
+
+            String mTotalSql = "SELECT MONTH(CheckOut) as month, SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as mTotal FROM hp_reservations where YEAR(CheckOut) = YEAR(CURRENT_DATE()) group by month";
+            String yTotalSql = "SELECT SUM(ROUND(DATEDIFF(checkout, checkin) * rate, 2)) as yTotal FROM hp_reservations where YEAR(CheckOut) = YEAR(CURRENT_DATE())";
+
+            try (Statement mTotalStmt = conn.createStatement();
+                    ResultSet mTotalResult = mTotalStmt.executeQuery(mTotalSql)) {
+                while (mTotalResult.next()) {
+                    int month = mTotalResult.getInt("month") - 1;
+                    mTotal[month] = mTotalResult.getFloat("mTotal");
+                }
+            }
+
+            try (Statement yTotalStmt = conn.createStatement();
+                    ResultSet yTotalResult = yTotalStmt.executeQuery(yTotalSql)) {
+                while (yTotalResult.next()) {
+                    yTotal = yTotalResult.getFloat("yTotal");
+                }
+            }
+
+            System.out.printf(
+                    "| %-30s | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-8.2f | $%-9.2f |%n",
+                    "TOTALS", mTotal[0], mTotal[1], mTotal[2], mTotal[3], mTotal[4],
+                    mTotal[5], mTotal[6], mTotal[7], mTotal[8], mTotal[9], mTotal[10],
+                    mTotal[11], yTotal);
+        }
+
+        System.out.printf(
+                "-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------%n");
     }
 }
