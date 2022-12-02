@@ -51,17 +51,17 @@ public class InnReservations {
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
 
-            String roomsAndRates = "with Popular as ( SELECT Room, (SUM(DateDiff(Checkout, IF (CheckIn >= DATE_SUB(day, 180, Current_Date), CheckIn, DATE_SUB(day, 180, Current_Date))))/180) as Popularity FROM hp_reservations WHERE CheckOut > DATE_SUB(day, 180, Current_Date) GROUP BY Room), mostRecent( SELECT hp_rooms.RoomName, hp_reservations.Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT mostRecent.RoomName, Popularity, DATE_ADD(day, 1, recentCheckout), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room GROUP By mostRecent.RoomName";
+            String roomsAndRates = "with Popular as (SELECT Room, ((SUM(DateDiff(Checkout, IF((CheckIn >= DATE_SUB(CURRENT_DATE, INTERVAL 180 day)), CheckIn, DATE_SUB(CURRENT_DATE, INTERVAL 180 day)))))/180) as Popularity FROM hp_reservations WHERE CheckOut >= (DATE_SUB(CURRENT_DATE, INTERVAL 180 day)) GROUP BY Room), mostRecent as (SELECT hp_rooms.RoomName as RoomName, hp_reservations.Room as Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT RoomName, mostRecent.Room, Popularity, DATE_ADD(recentCheckout, INTERVAL 1 day), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room";
 
             try (Statement stmt = conn.createStatement()) {
                 ResultSet result = stmt.executeQuery(roomsAndRates);
                 System.out.println("RoomName" + "\t" + "Popularity" + "\t" + "Next Avalible CheckIn" + "\t"
                         + "Recent Stay Length");
                 while (result.next()) {
-                    String roomName = result.getString(0);
-                    String popularity = result.getString(1);
-                    String nextCheckIn = result.getString(2);
-                    String recentStayLength = result.getString(3);
+                    String roomName = result.getString(1);
+                    String popularity = result.getString(2);
+                    String nextCheckIn = result.getString(3);
+                    String recentStayLength = result.getString(4);
                     System.out.println(roomName + "\t" + popularity + "\t" + nextCheckIn + "\t" + recentStayLength);
                 }
             }
@@ -264,6 +264,7 @@ public class InnReservations {
                 CheckoutDate = "< 9999-12-31";
             } else {
                 String[] dates = (scanner.nextLine()).split(":");
+                System.out.print(dates);
                 CheckInDate = "=" + dates[0];
                 CheckoutDate = "=" + dates[1];
             }
