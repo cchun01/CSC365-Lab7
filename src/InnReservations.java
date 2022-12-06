@@ -53,7 +53,7 @@ public class InnReservations {
                 System.getenv("HP_JDBC_USER"),
                 System.getenv("HP_JDBC_PW"))) {
 
-            String roomsAndRates = "with Popular as (SELECT Room, ((SUM(DateDiff(Checkout, IF((CheckIn >= DATE_SUB(CURRENT_DATE, INTERVAL 180 day)), CheckIn, DATE_SUB(CURRENT_DATE, INTERVAL 180 day)))))/180) as Popularity FROM hp_reservations WHERE CheckOut >= (DATE_SUB(CURRENT_DATE, INTERVAL 180 day)) GROUP BY Room), mostRecent as (SELECT hp_rooms.RoomName as RoomName, hp_reservations.Room as Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT RoomName, mostRecent.Room, Popularity, DATE_ADD(recentCheckout, INTERVAL 1 day), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room";
+            String roomsAndRates = "with Popular as ( SELECT Room, ROUND((SUM(DateDiff(least(Checkout, CURRENT_DATE), greatest(CheckIn,  DATE_SUB(CURRENT_DATE, INTERVAL 180 day)))))/180, 2) as Popularity FROM hp_reservations WHERE CheckOut >= (DATE_SUB(CURRENT_DATE, INTERVAL 180 day)) GROUP BY Room), mostRecent as ( SELECT hp_rooms.RoomName as RoomName, hp_reservations.Room as Room, MAX(Checkout) as recentCheckout, MAX(CheckIn) as recentCheckIn FROM hp_reservations INNER JOIN hp_rooms ON hp_reservations.Room = hp_rooms.RoomCode GROUP By hp_reservations.Room, hp_rooms.RoomName) SELECT RoomName, mostRecent.Room, Popularity, DATE_ADD(recentCheckout, INTERVAL 1 day), DATEDIFF(recentCheckout, recentCheckIn) FROM mostRecent INNER JOIN Popular ON Popular.Room = mostRecent.Room ORDER BY Popularity";
 
             try (Statement stmt = conn.createStatement()) {
                 ResultSet result = stmt.executeQuery(roomsAndRates);
@@ -77,8 +77,7 @@ public class InnReservations {
         for (LocalDate date = checkIn; date.isBefore(checkOut); date = date.plusDays(1)) {
             if (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
                 cost += (baseprice * 1.1);
-            }
-            else {
+            } else {
                 cost += baseprice;
             }
         }
@@ -119,8 +118,8 @@ public class InnReservations {
 
             int totalPeople = Integer.parseInt(kids) + Integer.parseInt(adults);
 
-            LocalDate ld = LocalDate.parse( checkOut );
-            LocalDate monthLater = ld.plusMonths( 1 );
+            LocalDate ld = LocalDate.parse(checkOut);
+            LocalDate monthLater = ld.plusMonths(1);
             String laterDate = monthLater.toString();
 
             conn.setAutoCommit(false);
@@ -128,29 +127,29 @@ public class InnReservations {
             int maxOcc = 4;
             String[][] suggested_rooms = new String[5][];
 
-            if(maxOcc >= totalPeople && checkOut.compareTo(checkIn) != -1 ) {
+            if (maxOcc >= totalPeople && checkOut.compareTo(checkIn) != -1) {
                 String reservationQuery = new StringBuilder()
                         .append("WITH occupied as ( \n")
-                            .append("SELECT RoomCode FROM hp_reservations JOIN hp_rooms ON Room = RoomCode ")
-                            .append("WHERE (Checkout > ? and Checkout <= ?) ")
-                            .append("OR (CheckIn >= ? and CheckIn < ?)) \n")
-                            .append("SELECT * FROM ( ")
+                        .append("SELECT RoomCode FROM hp_reservations JOIN hp_rooms ON Room = RoomCode ")
+                        .append("WHERE (Checkout > ? and Checkout <= ?) ")
+                        .append("OR (CheckIn >= ? and CheckIn < ?)) \n")
+                        .append("SELECT * FROM ( ")
                         .append("SELECT RoomCode, RoomName, maxOcc, Beds, bedType, decor, basePrice, ")
-                            .append("1 as SuggestedOrder, ? as  SuggestedCheckIn, ")
-                            .append("? as SuggesetedCheckOut, ")
-                            .append("(CASE RoomCode IN (SELECT * FROM occupied) ")
-                                .append("WHEN True THEN 'UnAvailable' ")
-                                .append("ElSE 'Available' ")
-                            .append("END) as 'status' FROM hp_rooms JOIN hp_reservations ON Room = RoomCode ").
-                             append("WHERE RoomCode LIKE ? AND BedType LIKE ? ")
-                            .append("GROUP BY RoomCode HAVING status = 'Available' \n")
+                        .append("1 as SuggestedOrder, ? as  SuggestedCheckIn, ")
+                        .append("? as SuggesetedCheckOut, ")
+                        .append("(CASE RoomCode IN (SELECT * FROM occupied) ")
+                        .append("WHEN True THEN 'UnAvailable' ")
+                        .append("ElSE 'Available' ")
+                        .append("END) as 'status' FROM hp_rooms JOIN hp_reservations ON Room = RoomCode ")
+                        .append("WHERE RoomCode LIKE ? AND BedType LIKE ? ")
+                        .append("GROUP BY RoomCode HAVING status = 'Available' \n")
                         .append("UNION \n ")
-                            .append("SELECT RoomCode, RoomName, maxOcc, Beds, bedType, decor, basePrice, ")
-                            .append("2 as SuggestedOrder, MAX(CheckOut) as SuggestedCheckIn, DATE_ADD(Max(CheckOut), ")
-                            .append("INTERVAL DATEDIFF(?, ?) DAY) as SuggestedCheckOut, ")
-                            .append("'Available' as status FROM hp_rooms JOIN hp_reservations ON Room = RoomCode ")
-                            .append("GROUP BY RoomCode ")
-                            .append("HAVING (MAX(CheckOut) LIKE ? OR MAX(CheckOut) LIKE ?)) ")
+                        .append("SELECT RoomCode, RoomName, maxOcc, Beds, bedType, decor, basePrice, ")
+                        .append("2 as SuggestedOrder, MAX(CheckOut) as SuggestedCheckIn, DATE_ADD(Max(CheckOut), ")
+                        .append("INTERVAL DATEDIFF(?, ?) DAY) as SuggestedCheckOut, ")
+                        .append("'Available' as status FROM hp_rooms JOIN hp_reservations ON Room = RoomCode ")
+                        .append("GROUP BY RoomCode ")
+                        .append("HAVING (MAX(CheckOut) LIKE ? OR MAX(CheckOut) LIKE ?)) ")
                         .append("as combinedRooms WHERE maxOcc >= ? \n ORDER BY SuggestedOrder LIMIT 5;").toString();
 
                 try (PreparedStatement pstmt = conn.prepareStatement(reservationQuery)) {
@@ -164,12 +163,12 @@ public class InnReservations {
                     pstmt.setDate(5, java.sql.Date.valueOf(checkIn));
                     pstmt.setDate(6, java.sql.Date.valueOf(checkOut));
 
-                    if(roomCode.equalsIgnoreCase("any"))
+                    if (roomCode.equalsIgnoreCase("any"))
                         pstmt.setString(7, "%");
                     else
                         pstmt.setString(7, "%" + roomCode + "%");
 
-                    if(bedType.equalsIgnoreCase("any"))
+                    if (bedType.equalsIgnoreCase("any"))
                         pstmt.setString(8, "%");
                     else
                         pstmt.setString(8, "%" + bedType + "%");
@@ -187,7 +186,8 @@ public class InnReservations {
                     int index = 1;
                     System.out.println("\n\n\n\n\n");
 
-                    System.out.printf("%-7s%-10s%-27s%-20s%-10s%-15s%-15s%-15s%-15s%-15s%-15s\n", "Index", "RoomCode", "RoomName", "Max Occupancy",
+                    System.out.printf("%-7s%-10s%-27s%-20s%-10s%-15s%-15s%-15s%-15s%-15s%-15s\n", "Index", "RoomCode",
+                            "RoomName", "Max Occupancy",
                             "Beds", "Bed Type", "Decor", "Base Price", "Check In", "Check Out", "Total Cost ($)");
 
                     while (result.next()) {
@@ -197,14 +197,17 @@ public class InnReservations {
                         String Beds = result.getString(4);
                         String type = result.getString(5);
                         String decor = result.getString(6);
-                        String basePrice =  result.getString(7);
+                        String basePrice = result.getString(7);
                         String SuggestedCheckIn = result.getString(9);
-                        String SuggestedCheckOut= result.getString(10);
-                        Double cost = getCost(LocalDate.parse(SuggestedCheckIn), LocalDate.parse(SuggestedCheckOut), Double.parseDouble(basePrice));
+                        String SuggestedCheckOut = result.getString(10);
+                        Double cost = getCost(LocalDate.parse(SuggestedCheckIn), LocalDate.parse(SuggestedCheckOut),
+                                Double.parseDouble(basePrice));
 
-                        String[] temp = {RoomCode, RoomName, occ, Beds, type, decor, basePrice, SuggestedCheckIn, SuggestedCheckOut, cost.toString()};
+                        String[] temp = { RoomCode, RoomName, occ, Beds, type, decor, basePrice, SuggestedCheckIn,
+                                SuggestedCheckOut, cost.toString() };
                         suggested_rooms[index - 1] = temp;
-                        System.out.printf("%-7s%-10s%-27s%-20s%-10s%-15s%-15s%-15s%-15s%-15s%-15s\n", index, RoomCode, RoomName, occ,
+                        System.out.printf("%-7s%-10s%-27s%-20s%-10s%-15s%-15s%-15s%-15s%-15s%-15s\n", index, RoomCode,
+                                RoomName, occ,
                                 Beds, type, decor, basePrice, SuggestedCheckIn, SuggestedCheckOut, "$" + cost);
                         index++;
                     }
@@ -213,65 +216,72 @@ public class InnReservations {
                     conn.rollback();
                 }
 
-                 System.out.print("\n\nEnter a number 1-5 to book that room. " + "To cancel request, enter cancel : ");
-                 String res = scanner.nextLine();
+                System.out.print("\n\nEnter a number 1-5 to book that room. " + "To cancel request, enter cancel : ");
+                String res = scanner.nextLine();
 
-                 if (res.equalsIgnoreCase("cancel")) {
-                     System.out.println("Request has been cancelled");
-                 } else {
-                     int index = Integer.parseInt(res);
-                     System.out.println(Arrays.toString(suggested_rooms[index - 1]));
-                     System.out.println("Reservations Details:");
-                     System.out.printf("%-25s%-15s%-25s%-15s%-15s%-15s%-10s%-8s%-15s\n", "Name", "RoomCode", "RoomName", "Bed Type", "Check In", "Check Out", "Adults", "Kids", "Total Cost ($)");
-                     System.out.printf("%-25s%-15s%-25s%-15s%-15s%-15s%-10s%-8s%-15s\n", firstName + " " + lastName, suggested_rooms[index - 1][0], suggested_rooms[index - 1][1], suggested_rooms[index - 1][4], suggested_rooms[index - 1][7], suggested_rooms[index - 1][8], adults, kids, suggested_rooms[index - 1][9]);
+                if (res.equalsIgnoreCase("cancel")) {
+                    System.out.println("Request has been cancelled");
+                } else {
+                    int index = Integer.parseInt(res);
+                    System.out.println(Arrays.toString(suggested_rooms[index - 1]));
+                    System.out.println("Reservations Details:");
+                    System.out.printf("%-25s%-15s%-25s%-15s%-15s%-15s%-10s%-8s%-15s\n", "Name", "RoomCode", "RoomName",
+                            "Bed Type", "Check In", "Check Out", "Adults", "Kids", "Total Cost ($)");
+                    System.out.printf("%-25s%-15s%-25s%-15s%-15s%-15s%-10s%-8s%-15s\n", firstName + " " + lastName,
+                            suggested_rooms[index - 1][0], suggested_rooms[index - 1][1], suggested_rooms[index - 1][4],
+                            suggested_rooms[index - 1][7], suggested_rooms[index - 1][8], adults, kids,
+                            suggested_rooms[index - 1][9]);
 
-                     System.out.println("Type confirm to book reservation. To cancel request, type cancel : ");
-                     String response = scanner.nextLine();
-                     if (response.equalsIgnoreCase("cancel")) {
-                         System.out.println("Request has been cancelled");
-                         return;
-                     } else {
-                         // get reservation code
-                         int resCode = 0;
-                         String codequery = new StringBuilder().append("SELECT MAX(Code) FROM hp_reservations").toString();
-                         try (PreparedStatement pstmt = conn.prepareStatement(codequery)) {
-                             ResultSet result = pstmt.executeQuery();
-                             while (result.next()) {
-                                 String code = result.getString(1);
-                                 resCode = Integer.parseInt(code) + 1;
-                             }
-                         }
-                         System.out.println("Your reservation code: " + resCode);
+                    System.out.println("Type confirm to book reservation. To cancel request, type cancel : ");
+                    String response = scanner.nextLine();
+                    if (response.equalsIgnoreCase("cancel")) {
+                        System.out.println("Request has been cancelled");
+                        return;
+                    } else {
+                        // get reservation code
+                        int resCode = 0;
+                        String codequery = new StringBuilder().append("SELECT MAX(Code) FROM hp_reservations")
+                                .toString();
+                        try (PreparedStatement pstmt = conn.prepareStatement(codequery)) {
+                            ResultSet result = pstmt.executeQuery();
+                            while (result.next()) {
+                                String code = result.getString(1);
+                                resCode = Integer.parseInt(code) + 1;
+                            }
+                        }
+                        System.out.println("Your reservation code: " + resCode);
 
-                         // insert into table
-                         String insertquery = new StringBuilder()
-                                 .append("INSERT INTO hp_reservations (CODE, Room, CheckIn, Checkout, Rate, LastName, FirstName, Adults, Kids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").toString();
-                         try (PreparedStatement pstmt = conn.prepareStatement(insertquery)) {
-                             double rate = Double.parseDouble(suggested_rooms[index - 1][9]) / ChronoUnit.DAYS.between(LocalDate.parse(suggested_rooms[index - 1][7]), LocalDate.parse(suggested_rooms[index - 1][8]));
-                             double roundedRate = Math.round(rate * 100.0) / 100.0;
-                             pstmt.setInt(1, resCode);
-                             pstmt.setString(2, suggested_rooms[index - 1][0]);
-                             pstmt.setDate(3, java.sql.Date.valueOf(suggested_rooms[index - 1][7]));
-                             pstmt.setDate(4, java.sql.Date.valueOf(suggested_rooms[index - 1][8]));
-                             pstmt.setDouble(5, roundedRate);
-                             pstmt.setString(6, lastName);
-                             pstmt.setString(7, firstName);
-                             pstmt.setString(8, adults);
-                             pstmt.setString(9, kids);
+                        // insert into table
+                        String insertquery = new StringBuilder()
+                                .append("INSERT INTO hp_reservations (CODE, Room, CheckIn, Checkout, Rate, LastName, FirstName, Adults, Kids) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+                                .toString();
+                        try (PreparedStatement pstmt = conn.prepareStatement(insertquery)) {
+                            double rate = Double.parseDouble(suggested_rooms[index - 1][9])
+                                    / ChronoUnit.DAYS.between(LocalDate.parse(suggested_rooms[index - 1][7]),
+                                            LocalDate.parse(suggested_rooms[index - 1][8]));
+                            double roundedRate = Math.round(rate * 100.0) / 100.0;
+                            pstmt.setInt(1, resCode);
+                            pstmt.setString(2, suggested_rooms[index - 1][0]);
+                            pstmt.setDate(3, java.sql.Date.valueOf(suggested_rooms[index - 1][7]));
+                            pstmt.setDate(4, java.sql.Date.valueOf(suggested_rooms[index - 1][8]));
+                            pstmt.setDouble(5, roundedRate);
+                            pstmt.setString(6, lastName);
+                            pstmt.setString(7, firstName);
+                            pstmt.setString(8, adults);
+                            pstmt.setString(9, kids);
 
-                             int rowCount = pstmt.executeUpdate();
-                             System.out.format("Updated %d records for reservation%n", rowCount);
+                            int rowCount = pstmt.executeUpdate();
+                            System.out.format("Updated %d records for reservation%n", rowCount);
 
-                             conn.commit();
-                         } catch (SQLException e) {
-                             conn.rollback();
-                         }
-                         System.out.println("Reservation complete");
-                     }
+                            conn.commit();
+                        } catch (SQLException e) {
+                            conn.rollback();
+                        }
+                        System.out.println("Reservation complete");
+                    }
 
-                 }
-            }
-            else {
+                }
+            } else {
                 System.out.println("There are no rooms available for your requested capacity");
             }
         } catch (SQLException e) {
