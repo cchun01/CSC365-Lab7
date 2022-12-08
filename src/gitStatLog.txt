@@ -1,0 +1,103 @@
+Lauren Allen: FR1, FR5
+Divya Satrawada: FR6
+Colin Chun: FR3, FR4
+Micah Wibowo: FR2
+
+commit 02f34c3ef9f27d5e2a98cbbe67e6559ef149a0eb
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Tue Dec 6 13:25:02 2022 -0800
+
+    FR1 done
+
+commit 46d61bcc3de591c592443a3b78919f2ba96991cd
+Merge: fc441bb 2e8c187
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Tue Dec 6 13:22:49 2022 -0800
+
+    Merge branch 'main' of https://github.com/cchun01/CSC365-Lab7 into main
+
+commit 2e8c1872c5d18d3a24f18599da302eacc44c0d4d
+Author: Micah Wibowo <wibowo@calpoly.edu>
+Date:   Mon Dec 5 17:01:43 2022 -0800
+
+    added FR2
+
+commit fc441bbd10345187e468a5112df061e19edd046b
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Fri Dec 2 12:42:08 2022 -0800
+
+    FR5 done
+
+commit acffa9b9c9d2916fa1a8ae00feddfe7454d28e5b
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Fri Dec 2 11:47:21 2022 -0800
+
+    fr1 formatting fix
+
+commit c5a784ddbf2cd44ffb778d6773d5820b2966c88e
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Fri Dec 2 11:02:38 2022 -0800
+
+    Fr1 format still gross
+
+commit e56106fa2cef7010a2f563f93095abca80a1311a
+Merge: 87a362b 913ecc8
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Fri Dec 2 10:54:36 2022 -0800
+
+    Merge branch 'main' of https://github.com/cchun01/CSC365-Lab7 into main
+
+commit 87a362b35328dee56e5aac118b40c3675528c3b1
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Fri Dec 2 10:54:18 2022 -0800
+
+    Fr1 done but format is bad
+
+commit 913ecc8f7783b93f79f20e8ab6a20a3440ac43b3
+Merge: 036b537 1779d56
+Author: Divya Satrawada <dsatrawada@gmail.com>
+Date:   Thu Dec 1 16:41:41 2022 -0800
+
+    Merge branch 'main' of https://github.com/cchun01/CSC365-Lab7
+
+commit 036b5374e52294194e6d38455b4950287d133ac1
+Author: Divya Satrawada <dsatrawada@gmail.com>
+Date:   Thu Dec 1 16:31:32 2022 -0800
+
+    Completed FR6: Revenue
+
+commit 1779d5694b160a7bb26b0dc8f32f8383928a316c
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Wed Nov 30 16:29:56 2022 -0800
+
+    untested fr5
+
+commit a69824b13e0a17df11656560cf9f4c513dbe7b4d
+Author: Lauren Allen <81931380+lallen15@users.noreply.github.com>
+Date:   Wed Nov 30 14:25:38 2022 -0800
+
+    fr1 code but I didnt test it
+
+commit cd887d58c72ba6a16adc827fdb844012e5a45169
+Author: cchun01 <63212924+cchun01@users.noreply.github.com>
+Date:   Tue Nov 29 13:36:14 2022 -0800
+
+    Completed FR4: Reservation Cancellation
+
+commit 4346b71c3534099850e9317a31b2be165442e4b5
+Author: cchun01 <63212924+cchun01@users.noreply.github.com>
+Date:   Tue Nov 29 12:51:14 2022 -0800
+
+    Completed FR3: Reservation Change
+
+commit 88a47af552e8d50e03df57bbddb3337bd060e692
+Author: cchun01 <63212924+cchun01@users.noreply.github.com>
+Date:   Mon Nov 28 13:06:44 2022 -0800
+
+    HastyPastry
+
+commit 2e1b2053c689e56b8db5f8cf95998e4cb40ea1fb
+Author: cchun01 <63212924+cchun01@users.noreply.github.com>
+Date:   Mon Nov 28 13:06:02 2022 -0800
+
+    first commit
